@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>企业微信派活</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.141 0.005 285.823);
+        --card: oklch(1 0 0);
+        --muted: oklch(0.967 0.001 286.375);
+        --muted-foreground: oklch(0.54 0.016 285.938);
+        --border: oklch(0.92 0.004 286.32);
+        --input: oklch(0.9 0.005 286.32);
+        --ring: oklch(0.705 0.015 286.067);
+        --primary: oklch(0.21 0.006 285.885);
+        --primary-foreground: oklch(0.985 0 0);
+        --brand: oklch(0.6 0.169 237.323);
+        --success: oklch(0.6 0.17 149.214);
+        --warning: oklch(0.68 0.17 70.08);
+        --destructive: oklch(0.577 0.245 27.325);
+        --hover: color-mix(in srgb, var(--foreground) 6%, transparent);
+        --press: color-mix(in srgb, var(--foreground) 10%, transparent);
+        --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.18), 0 4px 8px -4px rgb(0 0 0 / 0.08);
+        --radius: 10px;
+        --dur-1: 120ms;
+        --dur-2: 200ms;
+        --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+        --font-sans: -apple-system, BlinkMacSystemFont, 'Geist', 'Inter', 'PingFang SC', 'Segoe UI', sans-serif;
+        --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+      }
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --background: oklch(0.141 0.005 285.823);
+        --foreground: oklch(0.985 0 0);
+        --card: oklch(0.205 0.006 285.885);
+        --muted: oklch(0.274 0.006 286.033);
+        --muted-foreground: oklch(0.705 0.015 286.067);
+        --border: oklch(1 0 0 / 10%);
+        --input: oklch(1 0 0 / 15%);
+        --ring: oklch(0.552 0.016 286.067);
+        --primary: oklch(0.92 0.004 286.32);
+        --primary-foreground: oklch(0.21 0.006 285.885);
+        --brand: oklch(0.746 0.16 232.661);
+        --success: oklch(0.723 0.219 149.579);
+        --warning: oklch(0.828 0.189 84.429);
+        --destructive: oklch(0.704 0.191 22.216);
+        --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+        --shadow-lg: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.08);
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html { background: var(--background); }
+      body {
+        margin: 0; padding: 0 10px 72px; font: 12.5px/1.5 var(--font-sans); color: var(--foreground);
+        background: var(--background); overflow-wrap: anywhere; -webkit-font-smoothing: antialiased;
+      }
+      :focus-visible { outline: 2px solid color-mix(in srgb, var(--ring) 60%, transparent); outline-offset: 1px; }
+      svg { width: 14px; height: 14px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .row { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+      .row > * { min-width: 0; }
+      .grow { flex: 1 1 auto; }
+      .muted { color: var(--muted-foreground); }
+      .small { font-size: 11.5px; }
+      .ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .clamp1, .clamp2 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+      .clamp1 { -webkit-line-clamp: 1; }
+      .clamp2 { -webkit-line-clamp: 2; }
+      .err { color: var(--destructive); }
+
+      #top {
+        position: sticky; top: 0; z-index: 5; margin: 0 -10px 10px; padding: 8px 10px;
+        background: color-mix(in srgb, var(--background) 90%, transparent);
+        backdrop-filter: blur(10px); border-bottom: 1px solid var(--border);
+      }
+      #conn { font-size: 12px; }
+      #conn .bot { font: 11px var(--font-mono); color: var(--muted-foreground); }
+      .conn-detail {
+        margin-top: 5px; padding: 5px 8px; border-radius: 7px; font-size: 11.5px;
+        color: var(--destructive); background: color-mix(in srgb, var(--destructive) 10%, transparent);
+      }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted-foreground); flex: none; }
+      .dot.online { background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent); }
+      .dot.error, .dot.offline { background: var(--destructive); }
+      .dot.connecting, .dot.authenticating { background: var(--warning); }
+      .tabs { display: flex; margin-top: 8px; padding: 2px; gap: 2px; border-radius: 8px; background: var(--muted); }
+      .tabs button {
+        flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 3px;
+        height: 26px; padding: 0 3px; border: 0; border-radius: 6px; background: transparent;
+        color: var(--muted-foreground); font: 500 12px var(--font-sans); cursor: pointer; white-space: nowrap;
+      }
+      .tabs button.on { background: var(--card); color: var(--foreground); font-weight: 600; box-shadow: var(--shadow-xs); }
+      .tabs .n { font: 500 10.5px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+      .tabs .alert { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--destructive); color: #fff; font: 600 10px/16px var(--font-sans); }
+
+      button, select { font-family: var(--font-sans); }
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 26px; padding: 0 8px;
+        max-width: 100%; border-radius: 7px; border: 1px solid var(--input); background: transparent; color: inherit;
+        font: 500 12px var(--font-sans); cursor: pointer; white-space: nowrap; flex: none;
+        transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out), transform var(--dur-2) var(--ease-out);
+      }
+      .btn:hover { background: var(--hover); }
+      .btn:hover:active { background: var(--press); transform: scale(0.97); }
+      .btn:disabled { opacity: 0.45; pointer-events: none; }
+      .btn.primary { background: var(--primary); color: var(--primary-foreground); border-color: transparent; box-shadow: var(--shadow-xs); }
+      .btn.primary:hover { background: color-mix(in srgb, var(--primary) 88%, var(--background)); }
+      .btn.ghost { border-color: transparent; color: var(--muted-foreground); }
+      .btn.ghost:hover { color: var(--foreground); }
+      .btn.danger { color: var(--destructive); }
+      .btn.armed { background: var(--destructive); border-color: transparent; color: #fff; }
+      .btn.icon { width: 24px; padding: 0; border-color: transparent; color: var(--muted-foreground); }
+      .btn.sm { height: 22px; padding: 0 7px; font-size: 11.5px; }
+      .btn.icon.sm { width: 22px; padding: 0; }
+      .btn.block { width: 100%; }
+      .link {
+        border: 0; padding: 0; background: none; color: var(--brand); font: 500 11.5px var(--font-sans);
+        cursor: pointer; display: inline-flex; align-items: center; gap: 3px; max-width: 100%; min-width: 0;
+      }
+      .link:hover { text-decoration: underline; }
+
+      .card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow-xs); padding: 10px; margin-bottom: 8px; min-width: 0; max-width: 100%; }
+      .sec { display: flex; align-items: center; gap: 6px; margin: 14px 2px 6px; font-size: 11.5px; font-weight: 600; color: var(--muted-foreground); }
+      .sec .n { font-weight: 500; }
+      .hero { border-color: color-mix(in srgb, var(--brand) 30%, var(--border)); background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 7%, var(--card)), var(--card)); }
+      .eyebrow { font-size: 11px; color: var(--muted-foreground); }
+      .hero-title { margin: 2px 0 6px; font-size: 15px; font-weight: 650; line-height: 1.35; }
+      .reach { display: flex; gap: 6px; align-items: flex-start; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--muted-foreground); }
+      .reach svg { margin-top: 2px; }
+      .chip {
+        display: inline-flex; align-items: center; gap: 4px; height: 19px; padding: 0 7px; border-radius: 999px;
+        max-width: 100%; flex: 0 1 auto; font: 500 10.5px/19px var(--font-sans); color: var(--muted-foreground);
+        background: color-mix(in srgb, var(--foreground) 6%, transparent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      .chip svg { width: 11px; height: 11px; }
+      .chip.brand { color: var(--brand); background: color-mix(in srgb, var(--brand) 13%, transparent); }
+      .chip.success { color: var(--success); background: color-mix(in srgb, var(--success) 13%, transparent); }
+      .chip.warning { color: var(--warning); background: color-mix(in srgb, var(--warning) 15%, transparent); }
+      .chip.destructive { color: var(--destructive); background: color-mix(in srgb, var(--destructive) 12%, transparent); }
+      .av {
+        width: 28px; height: 28px; border-radius: 8px; flex: none; display: grid; place-items: center;
+        font: 600 12px var(--font-sans); color: var(--brand); background: color-mix(in srgb, var(--brand) 14%, transparent);
+      }
+      .av.person { border-radius: 50%; color: var(--success); background: color-mix(in srgb, var(--success) 14%, transparent); }
+      .av.sm { width: 22px; height: 22px; font-size: 10.5px; }
+      .name { font-weight: 600; }
+      .name.fallback { font-weight: 500; color: var(--muted-foreground); font-style: italic; }
+      .list { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow-xs); overflow: hidden; margin-bottom: 8px; max-width: 100%; }
+      .item { padding: 8px 10px; min-width: 0; }
+      .item + .item { border-top: 1px solid var(--border); }
+      .sub { font-size: 11px; color: var(--muted-foreground); }
+      .empty { padding: 18px 12px; text-align: center; color: var(--muted-foreground); font-size: 12px; }
+      .empty b { display: block; color: var(--foreground); margin-bottom: 2px; font-size: 12.5px; }
+      .nest { margin-top: 8px; padding: 8px; border-radius: 8px; background: var(--muted); min-width: 0; }
+      .nest .item { padding: 6px 0; }
+      .nest .item + .item { border-top-color: color-mix(in srgb, var(--foreground) 8%, transparent); }
+
+      .search { position: relative; margin-bottom: 8px; }
+      .search svg { position: absolute; left: 8px; top: 8px; color: var(--muted-foreground); width: 13px; height: 13px; }
+      input.text, textarea, select.sel, .search input {
+        width: 100%; min-width: 0; max-width: 100%; padding: 5px 8px; border: 1px solid var(--input);
+        border-radius: 7px; background: var(--background); color: inherit; font: 12px var(--font-sans);
+      }
+      .search input { padding-left: 27px; height: 30px; }
+      textarea { font: 11px/1.45 var(--font-mono); resize: vertical; margin-top: 6px; }
+      input.edit { width: 8.5em; max-width: 100%; height: 24px; padding: 2px 6px; border: 1px solid var(--ring); border-radius: 6px; background: var(--background); color: inherit; font: 12px var(--font-sans); }
+      .pills { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+      .pill {
+        height: 24px; padding: 0 9px; max-width: 100%; border-radius: 999px; border: 1px solid var(--border);
+        background: transparent; color: var(--muted-foreground); font: 500 11.5px var(--font-sans); cursor: pointer; white-space: nowrap;
+      }
+      .pill.on { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
+      .pill .n { margin-left: 3px; opacity: 0.75; font-variant-numeric: tabular-nums; }
+      .seg { display: flex; padding: 2px; gap: 2px; border-radius: 8px; background: var(--muted); }
+      .seg button {
+        flex: 1 1 0; min-width: 0; height: 24px; border: 0; border-radius: 6px; background: transparent;
+        color: var(--muted-foreground); font: 500 11.5px var(--font-sans); cursor: pointer; white-space: nowrap;
+      }
+      .seg button.on { background: var(--card); color: var(--foreground); font-weight: 600; box-shadow: var(--shadow-xs); }
+      .switch {
+        position: relative; width: 32px; height: 18px; flex: none; border-radius: 999px; border: 0; padding: 0;
+        background: color-mix(in srgb, var(--foreground) 18%, transparent); cursor: pointer; transition: background-color var(--dur-2) var(--ease-out);
+      }
+      .switch::after {
+        content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+        background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.25); transition: transform var(--dur-2) var(--ease-out);
+      }
+      .switch[aria-checked='true'] { background: var(--success); }
+      .switch[aria-checked='true']::after { transform: translateX(14px); }
+      .radio {
+        display: flex; gap: 8px; align-items: flex-start; width: 100%; padding: 8px; border: 1px solid var(--border);
+        border-radius: 8px; background: transparent; color: inherit; text-align: left; cursor: pointer; font: 12px/1.45 var(--font-sans);
+      }
+      .radio + .radio { margin-top: 6px; }
+      .radio .ring { width: 14px; height: 14px; margin-top: 2px; flex: none; border-radius: 50%; border: 1.5px solid var(--input); }
+      .radio.on { border-color: color-mix(in srgb, var(--brand) 55%, var(--border)); background: color-mix(in srgb, var(--brand) 6%, transparent); }
+      .radio.on .ring { border: 4px solid var(--brand); }
+      .radio b { display: block; font-weight: 600; }
+      .radio span.d { color: var(--muted-foreground); font-size: 11.5px; }
+      .setting { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; min-width: 0; }
+      .setting + .setting { border-top: 1px dashed var(--border); }
+      .setting .t { font-weight: 500; }
+
+      .task { padding: 9px 10px; }
+      .status { display: inline-flex; align-items: center; gap: 5px; font: 600 11px var(--font-sans); flex: none; }
+      .status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+      .s-active { color: var(--brand); }
+      .s-done { color: var(--success); }
+      .s-attention { color: var(--destructive); }
+      .task-text { margin-top: 4px; white-space: pre-wrap; }
+      .reply { margin-top: 6px; padding: 6px 8px; border-radius: 7px; background: var(--muted); font-size: 11.5px; white-space: pre-wrap; border-left: 2px solid color-mix(in srgb, var(--success) 60%, transparent); }
+      .fix { margin-top: 6px; padding: 6px 8px; border-radius: 7px; background: color-mix(in srgb, var(--destructive) 8%, transparent); font-size: 11.5px; flex-wrap: wrap; }
+      .foot { margin-top: 6px; }
+
+      #toast {
+        position: fixed; left: 10px; right: 10px; bottom: 10px; z-index: 20; display: flex; align-items: center; gap: 8px;
+        padding: 8px 10px; border-radius: 9px; background: var(--primary); color: var(--primary-foreground); box-shadow: var(--shadow-lg);
+        font-size: 12px; transform: translateY(140%); opacity: 0; pointer-events: none;
+        transition: transform var(--dur-2) var(--ease-out), opacity var(--dur-2) var(--ease-out);
+      }
+      #toast.show { transform: none; opacity: 1; pointer-events: auto; }
+      #toast.bad { background: var(--destructive); color: #fff; }
+      @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    </style>
+  </head>
+  <body>
+    <header id="top"></header>
+    <main id="view"></main>
+    <div id="toast" role="status" aria-live="polite" aria-hidden="true"></div>
+    <script>
+      (() => {
+        const enso = window.enso;
+        const root = document.documentElement;
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+        const ICON = {
+          refresh: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+          search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+          plus: '<path d="M12 5v14M5 12h14"/>',
+          pencil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+          chevron: '<path d="m9 6 6 6-6 6"/>',
+          down: '<path d="m6 9 6 6 6-6"/>',
+          arrow: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+          send: '<path d="m22 2-7 20-4-9-9-4Z"/>',
+          folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
+          x: '<path d="M18 6 6 18M6 6l12 12"/>',
+        };
+        const icon = (n) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+        const CONN = { idle: '未启动', unconfigured: '未配置机器人', connecting: '连接中', authenticating: '认证中', online: '在线', offline: '已断开', error: '连接出错' };
+        const STATUS = { pending: '转交中', queued: '处理中', replied: '已回复', denied: '没有权限', unbound: '没人接', failed: '失败' };
+        const OUTBOUND = [
+          ['local-sessions', '本地会话不限（推荐）', '未接入企微来信的会话可发给任意已知群或单聊；已接入企微来信的会话仅可发给已绑定目标。'],
+          ['all-sessions', '全部会话可跨聊', '所有会话都能主动发给任意已知群或单聊。'],
+          ['bound-only', '仅已绑定目标', '每个会话只能发给接入它的企业微信目标。'],
+        ];
+        const TASK_PAGE = 8;
+        const POLL_MS = 4000;
+
+        const connDetail = (raw) => {
+          const s = String(raw ?? '').trim();
+          if (!s) return '';
+          if (/New connection established|disconnected_event/i.test(s)) return '其他地方建立了新连接，当前连接已被踢下线';
+          if (/code:\s*1006|\b1006\b/i.test(s)) return '网络异常断开（1006），可点「重新连接」或等待自动重连';
+          if (/code:\s*1000|manual/i.test(s)) return '连接已主动关闭';
+          if (/invalid bot_id or secret|853000/i.test(s)) return 'Bot ID 或 Secret 不正确（853000）';
+          if (/timed?\s*out|ETIMEDOUT/i.test(s)) return '连接超时，请检查网络';
+          if (/ECONNRESET|ENOTFOUND|ECONNREFUSED|network/i.test(s)) return '网络连接失败，请检查网络';
+          return s;
+        };
+        const baseName = (p) => (p ? String(p).replace(/\/+$/, '').split('/').pop() || p : '');
+        const when = (t) => {
+          if (!t) return '';
+          const diff = Date.now() - t;
+          if (diff < 60e3) return '刚刚';
+          if (diff < 3600e3) return `${Math.floor(diff / 60e3)} 分钟前`;
+          const d = new Date(t);
+          const hm = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+          return d.toDateString() === new Date().toDateString() ? hm : `${d.getMonth() + 1}/${d.getDate()} ${hm}`;
+        };
+        const initial = (name) => esc([...String(name).replace(/^(群名未获取|姓名未获取)\s*/, '')][0] || '?');
+        const enc = (o) => esc(JSON.stringify(o ?? {}));
+        const docTextarea = (chatKey) => [...document.querySelectorAll('textarea[data-doc-links]')].find((el) => el.dataset.docLinks === chatKey) ?? null;
+        const scrollTop = () => { root.scrollTop = 0; document.body.scrollTop = 0; };
+        const attrsOf = (args = {}) => [
+          args.chatKey ? `data-chat="${esc(args.chatKey)}"` : '',
+          args.userid ? `data-user="${esc(args.userid)}"` : '',
+          args.id ? `data-id="${esc(args.id)}"` : '',
+          args.sessionId ? `data-session="${esc(args.sessionId)}"` : '',
+          args.mode ? `data-mode="${esc(args.mode)}"` : '',
+          args.list ? `data-list="${esc(args.list)}"` : '',
+          typeof args.on === 'boolean' ? `data-on="${args.on}"` : '',
+          typeof args.enabled === 'boolean' ? `data-enabled="${args.enabled}"` : '',
+        ].filter(Boolean).join(' ');
+
+        let view = null;
+        const chatOf = (k) => view?.chats?.find((c) => c.chatKey === k) ?? null;
+
+        const ACTIONS = {
+          bind: {
+            confirm: (a) => {
+              const r = chatOf(a.chatKey)?.route;
+              return r && !r.isCurrent ? '确认改接？' : null;
+            },
+            done: () => '已接到本会话',
+          },
+          bindNew: { done: () => '已新建会话并接入' },
+          unbind: { confirm: () => '确认断开？', done: () => '已断开，新消息不再进入会话' },
+          bindMember: { done: () => '这位成员的消息改由本会话处理' },
+          resetMember: { confirm: () => '确认恢复？', done: () => '已恢复跟随群默认' },
+          setListed: {
+            confirm: (a) => (a.list === 'block' && a.on ? '确认拉黑？' : null),
+            done: (a) => (a.list === 'block' ? (a.on ? '已拉黑该成员' : '已解除拉黑') : (a.on ? '已加入允许名单' : '已移出允许名单')),
+          },
+          grantDocs: { call: 'grantBrowserDocuments', done: () => '已保存只读授权' },
+          revokeDocs: { call: 'grantBrowserDocuments', confirm: () => '确认撤销？', done: () => '已撤销网页读取授权' },
+          setSameMessageReply: { done: (a) => (a.enabled ? '已开启原生思考动画' : '已关闭原生思考动画') },
+          setMode: { done: (a) => (a.mode === 'allowlist' ? '现在只有允许的人能派活' : '现在所有人都能派活') },
+          openDocs: { call: 'grantBrowserDocuments', done: () => '已放开全部文档' },
+          copyText: { done: () => '已复制' },
+          openBoard: { done: () => '已在浏览器打开' },
+          selfCheck: { done: () => '自检完成' },
+          importMisses: { done: () => '已补登记，重复的会跳过' },
+          setTunnelMode: { done: () => '隧道方式已更新' },
+          setBoardGroup: { silent: true },
+          createShare: { done: () => '已创建分享链接' },
+          revokeShare: { confirm: () => '确认收回这个链接？', done: () => '已收回分享链接' },
+          setOutboundMode: { done: () => '主动外发范围已更新' },
+          rename: { done: (a) => (a.name ? `备注已改为「${a.name}」` : '已清除备注') },
+          refreshNames: { done: () => '正在同步姓名和群名' },
+          reconnect: { done: () => '正在重新连接' },
+          focus: { silent: true },
+        };
+
+        const params = new URLSearchParams(location.search);
+        const ui = {
+          tab: params.get('tab') || 'here',
+          chatFilter: { scope: 'all', q: '' },
+          taskFilter: { bucket: 'all', q: '' },
+          picker: { open: params.get('picker') === '1', q: '' },
+          confirm: null,
+          expanded: new Set((params.get('open') || '').split(',').filter(Boolean)),
+          editing: null,
+          docDrafts: new Map(),
+          taskLimit: TASK_PAGE,
+        };
+
+        const applyTheme = (t) => {
+          const n = typeof t === 'string' ? t : t?.theme;
+          if (n === 'dark' || n === 'light') root.dataset.theme = n;
+        };
+        applyTheme(enso?.theme);
+        enso?.onTheme?.(applyTheme);
+
+        let toastTimer = 0;
+        const toast = (text, { bad = false } = {}) => {
+          const t = $('toast');
+          t.className = bad ? 'bad' : '';
+          t.setAttribute('aria-hidden', 'false');
+          t.innerHTML = `<span class="grow">${esc(text)}</span>`;
+          requestAnimationFrame(() => t.classList.add('show'));
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(() => {
+            t.classList.remove('show');
+            t.setAttribute('aria-hidden', 'true');
+          }, 3000);
+        };
+
+        let disarmTimer = 0;
+        const keyOf = (act, args) => `${act}|${JSON.stringify(args)}`;
+        const disarm = () => {
+          clearTimeout(disarmTimer);
+          ui.confirm = null;
+        };
+        const run = async (act, args = {}) => {
+          const spec = ACTIONS[act] || {};
+          const ask = view && spec.confirm?.(args);
+          const key = keyOf(act, args);
+          if (ask && ui.confirm !== key) {
+            ui.confirm = key;
+            clearTimeout(disarmTimer);
+            disarmTimer = setTimeout(() => {
+              if (ui.confirm === key) {
+                ui.confirm = null;
+                render();
+              }
+            }, 4000);
+            return render();
+          }
+          disarm();
+          try {
+            const next = await enso.call(spec.call || act, args);
+            if (next?.conn) accept(next);
+            if (!spec.silent) toast(spec.done?.(args) || '已完成');
+          } catch (e) {
+            toast(e?.message || String(e), { bad: true });
+          }
+        };
+        const btn = (text, act, args, cls = '') => {
+          const spec = ACTIONS[act];
+          const armed = Boolean(spec?.confirm && ui.confirm === keyOf(act, args));
+          const label = armed ? spec.confirm(args) : text;
+          return `<button class="btn ${armed ? 'armed' : cls}" data-act="${esc(act)}" data-args="${enc(args)}" ${attrsOf(args)}>${esc(label)}</button>`;
+        };
+
+        const nameHtml = (lb, scope, extra = '') => {
+          if (ui.editing?.id === lb.id && ui.editing.scope === scope) {
+            return `<span class="row" data-edit-box style="flex-wrap:wrap"><input class="edit" data-id="${esc(lb.id)}" maxlength="32" placeholder="备注名" value="${esc(ui.editing.draft)}" />
+              <button class="btn sm primary" data-act="saveRename" data-id="${esc(lb.id)}">保存</button><button class="btn sm ghost" data-act="cancelRename">取消</button></span>`;
+          }
+          return `<span class="name ell ${lb.source === 'fallback' ? 'fallback' : ''} ${extra}" title="${esc(lb.id)}">${esc(lb.name)}</span>
+            <button class="btn icon sm" data-act="startRename" data-id="${esc(lb.id)}" data-scope="${esc(scope)}" data-remark="${esc(lb.remark)}" title="${lb.remark ? '修改备注' : '添加备注'}" aria-label="备注">${icon('pencil')}</button>`;
+        };
+        const avatar = (kind, name, sm = false) => `<span class="av ${kind === 'group' ? '' : 'person'} ${sm ? 'sm' : ''}" aria-hidden="true">${kind === 'group' ? '群' : initial(name)}</span>`;
+        const projectChip = (p, cls = '') => (p ? `<span class="chip ${cls}" title="${esc(p)}">${icon('folder')}${esc(baseName(p))}</span>` : '');
+
+        const renderTop = () => {
+          const c = view.conn;
+          const detail = c.status === 'online' ? '' : connDetail(c.detail);
+          const tabs = [
+            ['here', '本会话', ''],
+            ['chats', '聊天', `<span class="n">${view.counts.chats}</span>`],
+            ['tasks', '任务', view.counts.attention ? `<span class="alert" title="需要处理">${view.counts.attention}</span>` : view.counts.active ? `<span class="n">${view.counts.active}</span>` : ''],
+            ['settings', '设置', ''],
+            ['board', '看板', view.board?.counts?.review ? `<span class="alert" title="待审核">${view.board.counts.review}</span>` : (view.board?.counts?.decision || view.board?.counts?.todo) ? `<span class="n">${(view.board?.counts?.decision || 0) + (view.board?.counts?.todo || 0)}</span>` : ''],
+          ];
+          $('top').innerHTML = `<div id="conn">
+              <div class="row">
+                <span class="dot ${esc(c.status)}"></span><b style="flex:none">${esc(CONN[c.status] || c.status)}</b>
+                <span class="bot ell grow" title="机器人 ${esc(c.botId)}">${esc(c.botId)}</span>
+                ${c.status === 'online' ? `<button class="btn icon sm" data-act="reconnect" title="重新连接" aria-label="重新连接">${icon('refresh')}</button>` : btn('重新连接', 'reconnect', {}, 'sm')}
+              </div>
+              ${detail ? `<div class="conn-detail" title="${esc(c.detail)}">${esc(detail)}</div>` : ''}
+            </div>
+            <nav class="tabs" role="tablist">${tabs.map(([id, t, badge]) => `<button role="tab" aria-selected="${ui.tab === id}" class="${ui.tab === id ? 'on' : ''}" data-act="tab" data-tab="${id}">${t}${badge}</button>`).join('')}</nav>`;
+        };
+
+        const reachLine = (cur) => {
+          const r = cur.reach;
+          if (r.scope === 'any') return `可主动发给任意已知群或单聊（${r.knownCount} 个）。`;
+          const why = r.why === 'exposed'
+            ? '此会话已接入企微来信，当前仅可发给已绑定目标'
+            : '外发范围设为最严格，当前仅可发给已绑定目标';
+          return `${why}（${r.boundCount} 个）。<button class="link" data-act="tab" data-tab="settings">调整</button>`;
+        };
+        const docsPanel = (ch) => {
+          if (!ch.settings.docsAvailable) {
+            return `<div class="setting" style="display:block">
+              <div class="t">网页文档只读</div>
+              <div class="sub" style="margin-top:2px">网页读取要求当前会话一对一只绑定一个企微聊天，请使用独立会话。</div>
+            </div>`;
+          }
+          const d = ch.settings.docs;
+          const draft = ui.docDrafts.get(ch.chatKey) || {};
+          const scope = draft.scope ?? (d?.scope === 'listed' ? 'listed' : 'all');
+          const links = draft.links ?? (d?.paths || []).map((p) => `https://doc.weixin.qq.com${p}`).join('\n');
+          return `<div class="setting" style="display:block">
+            <div class="row"><span class="t grow">网页文档只读</span><span class="chip ${scope === 'all' ? 'warning' : 'success'}">${scope === 'all' ? '不限文档' : `${(d?.paths || []).length} 份`}</span></div>
+            <div class="sub" style="margin:2px 0 6px">${d ? '允许 Agent 只读你 Chrome 里已打开的企微表格，不修改内容。' : '这个聊天还没保存过授权。旧绑定按原来的规则默认可读全部文档；新绑定默认一份都不开放。'}保存一次后按你选的范围生效。</div>
+            <select class="sel" data-doc-scope data-chat="${esc(ch.chatKey)}" aria-label="网页文档授权范围">
+              <option value="all" ${scope === 'all' ? 'selected' : ''}>不逐份限制（全部企微文档）</option>
+              <option value="listed" ${scope === 'listed' ? 'selected' : ''}>仅允许下列指定链接</option>
+            </select>
+            ${scope === 'listed'
+              ? `<textarea rows="3" data-doc-links="${esc(ch.chatKey)}" placeholder="每行粘贴一个 https://doc.weixin.qq.com 链接，最多 10 个">${esc(links)}</textarea>`
+              : '<div class="sub" style="margin-top:6px">能在这个聊天里派活的人，可能借 Agent 读到你能看、他们看不到的文档。</div>'}
+            <div class="row" style="margin-top:6px;flex-wrap:wrap"><span class="grow"></span>${scope === 'listed' && !(d?.paths || []).length ? btn('放开全部文档', 'openDocs', { chatKey: ch.chatKey, links: '', scope: 'all' }, 'sm') : ''}${btn('撤销授权', 'revokeDocs', { chatKey: ch.chatKey, links: '', scope: 'listed' }, 'sm ghost danger')}<button class="btn sm primary" data-act="grantDocs" data-chat="${esc(ch.chatKey)}">保存授权</button></div>
+          </div>`;
+        };
+        const routeRow = (r) => {
+          if (r.kind === 'member') {
+            return `<div class="item"><div class="row">${avatar('single', r.memberName)}<div class="grow"><div class="name ell">${esc(r.memberName)}</div><div class="sub ell">「${esc(r.chatName)}」里单独交给本会话</div></div>
+              ${btn('恢复群默认', 'resetMember', { chatKey: r.chatKey, userid: r.userid }, 'sm ghost')}</div></div>`;
+          }
+          const ch = chatOf(r.chatKey);
+          const s = ch?.settings;
+          const open = ui.expanded.has(`route:${r.chatKey}`);
+          return `<div class="item"><div class="row">${avatar(r.kind, r.chatName)}
+              <div class="grow"><div class="name ell">${esc(r.chatName)}</div><div class="sub ell">${r.kind === 'group' ? '群聊 · 全群默认交给本会话' : '单聊'}${s?.sameMessageReply ? ' · 思考动画开' : ''}</div></div>
+              ${s ? `<button class="btn icon sm" data-act="expand" data-key="route:${esc(r.chatKey)}" data-chat="${esc(r.chatKey)}" aria-expanded="${open}" title="聊天设置" aria-label="聊天设置">${icon(open ? 'down' : 'chevron')}</button>` : ''}
+              ${btn('断开', 'unbind', { chatKey: r.chatKey }, 'sm ghost')}
+            </div>
+            ${open && s ? `<div class="nest">
+              ${s.sameMessageReply !== null ? `<div class="setting"><div class="grow"><div class="t">企微原生思考动画</div><div class="sub">开启后本轮提问先显示企微原生思考动画，9 分 30 秒内原地替换为最终结果；新发消息仍会新起气泡。</div></div>
+                <button class="switch" role="switch" aria-checked="${s.sameMessageReply}" aria-label="企微原生思考动画" data-act="setSameMessageReply" data-chat="${esc(r.chatKey)}" data-args="${enc({ chatKey: r.chatKey, enabled: !s.sameMessageReply })}"></button></div>` : ''}
+              ${docsPanel(ch)}
+            </div>` : ''}
+          </div>`;
+        };
+        const pickerItems = () => {
+          const q = ui.picker.q.trim().toLowerCase();
+          const hit = (...s) => !q || s.some((x) => String(x || '').toLowerCase().includes(q));
+          const items = [];
+          for (const ch of view.chats) {
+            if (!ch.route?.isCurrent && hit(ch.label.name, ch.route?.title)) items.push({ type: 'chat', ch });
+            if (ch.kind === 'group' && ch.route && !ch.route.isCurrent) {
+              for (const m of ch.members) if (!m.override?.isCurrent && hit(m.label.name, ch.label.name)) items.push({ type: 'member', ch, m });
+            }
+          }
+          return items.sort((a, b) => Number(Boolean(a.ch.route)) - Number(Boolean(b.ch.route)));
+        };
+        const picker = () => {
+          const items = pickerItems();
+          return `<div class="card" style="padding:8px">
+            <div class="row" style="margin-bottom:6px"><b class="grow">选一个聊天交给本会话</b><button class="btn icon sm" data-act="picker" aria-label="关闭">${icon('x')}</button></div>
+            <div class="search">${icon('search')}<input id="picker-q" placeholder="搜群名、人名或会话" value="${esc(ui.picker.q)}" /></div>
+            <div style="max-height:300px;overflow:auto;margin:0 -8px -8px">
+              ${items.length ? items.map(({ type, ch, m }) => type === 'chat'
+                ? `<div class="item"><div class="row">${avatar(ch.kind, ch.label.name, true)}<div class="grow"><div class="ell">${esc(ch.label.name)}</div>
+                    <div class="sub ell">${ch.route ? `现在在「${esc(ch.route.title)}」` : ch.origin === 'discovered' ? '来自最近会话，可提前接好' : '还没接入会话'}</div></div>
+                    ${btn(ch.route ? '改接' : '接入', 'bind', { chatKey: ch.chatKey }, ch.route ? 'sm' : 'sm primary')}</div></div>`
+                : `<div class="item"><div class="row" style="padding-left:12px">${avatar('single', m.label.name, true)}<div class="grow"><div class="ell">${esc(m.label.name)}</div>
+                    <div class="sub ell">「${esc(ch.label.name)}」群成员 · ${m.override ? `单独在「${esc(m.override.title)}」` : '跟随群默认'}</div></div>
+                    ${btn('单独接入', 'bindMember', { chatKey: ch.chatKey, userid: m.label.id }, 'sm')}</div></div>`).join('')
+                : '<div class="empty">没有匹配的聊天</div>'}
+            </div></div>`;
+        };
+        const renderHere = () => {
+          const cur = view.current;
+          if (!cur) return '<section id="current" class="card empty"><b>没有打开的会话</b>先在左侧打开一个 Enso 会话，再把企微聊天接进来。</section>';
+          return `<section id="current" class="card hero">
+              <div class="eyebrow">当前会话</div>
+              <div class="hero-title clamp2" title="${esc(cur.sessionId)}">${esc(cur.title)}</div>
+              <div class="row" style="flex-wrap:wrap">${projectChip(cur.projectRoot, 'brand')}<span class="chip">${cur.routes.length ? `接入 ${cur.routes.length} 个企微来源` : '未接入企微'}</span></div>
+              <div id="outbound-status" class="reach">${icon('send')}<span>${reachLine(cur)}</span></div>
+            </section>
+            <div class="sec">谁的消息会进到这里<span class="n">${cur.routes.length || ''}</span></div>
+            ${cur.routes.length ? `<div class="list">${cur.routes.map(routeRow).join('')}</div>` : '<div class="card empty"><b>还没有企微聊天接到这里</b>接入后，群里 @机器人 或单聊发的消息会直接变成这个会话的任务。</div>'}
+            ${ui.picker.open ? picker() : `<button class="btn block primary" data-act="picker" style="height:30px">${icon('plus')}接入一个聊天</button>`}`;
+        };
+
+        const curRoot = () => view.current?.projectRoot || null;
+        const visibleChats = () => {
+          const { scope, q } = ui.chatFilter;
+          const ql = q.trim().toLowerCase();
+          return view.chats.filter((c) =>
+            (scope === 'all' || (scope === 'here' ? c.projectRoot && c.projectRoot === curRoot() : !c.route)) &&
+            (!ql || [c.label.name, c.route?.title, baseName(c.projectRoot)].some((s) => String(s || '').toLowerCase().includes(ql))));
+        };
+        const chatCard = (c) => {
+          const r = c.route;
+          const open = ui.expanded.has(`chat:${c.chatKey}`);
+          const state = r?.isCurrent ? '<span class="chip brand">本会话</span>' : r ? projectChip(r.projectRoot) : '<span class="chip warning">未接入</span>';
+          const last = c.last ? `${c.kind === 'group' && c.last.sender ? `${esc(c.last.sender.name)}：` : ''}${esc(c.last.text)}` : '';
+          const overrides = c.members.filter((m) => m.override).length;
+          return `<article class="card">
+            <div class="row">${avatar(c.kind, c.label.name)}<div class="grow"><div class="row">${nameHtml(c.label, `chat:${c.chatKey}`)}</div>
+              <div class="sub ell">${c.kind === 'group' ? '群聊' : '单聊'}${c.last ? ` · ${when(c.last.at)}` : ''}${c.origin === 'discovered' ? ' · 来自最近会话' : ''}</div></div>${state}</div>
+            ${c.boardHint ? `<div class="sub board-hint" style="margin-top:6px;color:var(--warning)" title="${esc(c.boardHint.text)}">⚠ 会话可能没有看板工具，请在新会话里重新绑定。</div>` : ''}
+            ${last ? `<div class="muted small clamp1" style="margin-top:6px" title="${esc(c.last.text)}">${last}</div>` : c.origin === 'discovered' ? '<div class="muted small" style="margin-top:6px">还没人 @ 过机器人。现在接好，第一条消息就能直接处理。</div>' : ''}
+            <div class="row small" style="margin-top:6px">${icon('arrow')}${r ? `<button class="link ell" data-act="focus" data-session="${esc(r.sessionId)}" data-args="${enc({ sessionId: r.sessionId })}" title="打开会话">${esc(r.isCurrent ? `本会话 · ${r.title}` : r.title)}</button>` : '<span class="muted">消息暂时没人接</span>'}</div>
+            <div class="row" style="margin-top:8px;flex-wrap:wrap">
+              ${r?.isCurrent ? '<button class="btn sm" data-act="tab" data-tab="here">在本会话里设置</button>' : btn(r ? '改接到本会话' : '接到本会话', 'bind', { chatKey: c.chatKey }, `sm ${r ? '' : 'primary'}`)}
+              ${btn('新会话处理', 'bindNew', { chatKey: c.chatKey }, 'sm ghost')}
+              <span class="grow"></span>
+              ${r ? btn('断开', 'unbind', { chatKey: c.chatKey }, 'sm ghost') : ''}
+            </div>
+            ${c.kind === 'group' && r && c.members.length ? `<button class="link" style="margin-top:8px;color:var(--muted-foreground)" data-act="expand" data-key="chat:${esc(c.chatKey)}" data-chat="${esc(c.chatKey)}" aria-expanded="${open}">${icon(open ? 'down' : 'chevron')}按成员分流${overrides ? `（${overrides} 人单独处理）` : ''}</button>
+              ${open ? `<div class="nest"><div class="sub" style="margin-bottom:4px">${r.isCurrent ? '全群默认交给本会话。单独分出去的人可以在这里收回。' : `默认全群交给「${esc(r.title)}」。可以把某个人的消息单独交给本会话。`}</div>
+                ${c.members.map((m) => `<div class="item"><div class="row">${avatar('single', m.label.name, true)}<div class="grow"><div class="ell">${esc(m.label.name)}</div><div class="sub ell">${m.override ? (m.override.isCurrent ? '单独交给本会话' : `单独交给「${esc(m.override.title)}」`) : '跟随群默认'}</div></div>
+                  ${m.override ? btn('恢复默认', 'resetMember', { chatKey: c.chatKey, userid: m.label.id }, 'sm ghost') : ''}${m.override?.isCurrent || r.isCurrent ? '' : btn('交给本会话', 'bindMember', { chatKey: c.chatKey, userid: m.label.id }, 'sm')}</div></div>`).join('')}
+              </div>` : ''}` : ''}
+          </article>`;
+        };
+        const renderChats = () => {
+          const here = curRoot();
+          const n = (scope) => view.chats.filter((c) => scope === 'all' || (scope === 'here' ? c.projectRoot && c.projectRoot === here : !c.route)).length;
+          const shown = visibleChats();
+          const scopes = [['all', '全部'], ...(here ? [['here', baseName(here)]] : []), ['unrouted', '未接入']];
+          return `<div class="search">${icon('search')}<input id="chat-q" placeholder="搜群名、人名、会话或项目" value="${esc(ui.chatFilter.q)}" /></div>
+            <div class="pills">${scopes.map(([k, t]) => `<button class="pill ${ui.chatFilter.scope === k ? 'on' : ''}" data-act="chatScope" data-scope="${k}" ${k === 'here' ? `title="${esc(here)}"` : ''}>${esc(t)}<span class="n">${n(k)}</span></button>`).join('')}</div>
+            ${shown.length ? shown.map(chatCard).join('') : view.chats.length
+              ? `<div class="card empty"><b>没有符合条件的聊天</b><button class="link" data-act="chatScope" data-scope="all">查看全部 ${view.chats.length} 个</button></div>`
+              : '<div class="card empty"><b>还没有企微聊天</b>在企微群里 @机器人，或给它发一条单聊，聊天就会出现在这里。</div>'}`;
+        };
+
+        const visibleTasks = () => {
+          const { bucket, q } = ui.taskFilter;
+          const ql = q.trim().toLowerCase();
+          return view.tasks.filter((t) => (bucket === 'all' || t.bucket === bucket) &&
+            (!ql || [t.text, t.reply, t.sender.name, t.chat.name, t.session?.title].some((s) => String(s || '').toLowerCase().includes(ql))));
+        };
+        const fixRow = (t) => {
+          if (t.fix === 'bindChat') {
+            return `<div class="fix row"><span class="grow">这个聊天还没接入任何会话</span>${btn('接到本会话', 'bind', { chatKey: t.chat.chatKey }, 'sm')}</div>`;
+          }
+          if (t.fix === 'unblockSender') {
+            return `<div class="fix row"><span class="grow">${esc(t.sender.name)} 已被拉黑</span>${btn('解除拉黑', 'setListed', { list: 'block', userid: t.sender.id, on: false }, 'sm')}</div>`;
+          }
+          if (t.fix === 'allowSender') {
+            return `<div class="fix row"><span class="grow">${esc(t.sender.name)} 不在允许名单里</span>${btn('加入允许', 'setListed', { list: 'allow', userid: t.sender.id, on: true }, 'sm')}</div>`;
+          }
+          return '';
+        };
+        const taskCard = (t) => {
+          const open = ui.expanded.has(`task:${t.id}`);
+          const long = t.text.length > 40 || t.text.includes('\n');
+          const where = t.chat.kind === 'group' ? `群「${t.chat.name}」` : '单聊';
+          return `<article class="card task">
+            <div class="row"><span class="status s-${t.bucket}">${STATUS[t.status] || t.status}</span><span class="name ell ${t.sender.source === 'fallback' ? 'fallback' : ''}" title="${esc(t.sender.id)}">${esc(t.sender.name)}</span><span class="grow"></span><span class="muted small" style="flex:none">${when(t.createdAt)}</span></div>
+            <div class="sub ell" style="margin-top:1px">来自${esc(where)}</div>
+            <div class="task-text ${long && !open ? 'clamp2' : ''}">${esc(t.text)}</div>
+            ${long ? `<button class="link" data-act="expand" data-key="task:${esc(t.id)}" aria-expanded="${open}">${open ? '收起' : '展开全文'}</button>` : ''}
+            ${t.reply ? `<div class="reply clamp2" title="${esc(t.reply)}">${esc(t.reply)}</div>` : ''}
+            ${t.error ? `<div class="sub err" style="margin-top:4px">${esc(t.error)}</div>` : ''}
+            ${t.sendError ? `<div class="sub err" style="margin-top:4px">回复没发出去：${esc(t.sendError)}</div>` : ''}
+            ${fixRow(t)}
+            ${t.session ? `<div class="foot row small">${icon('arrow')}<button class="link ell" data-act="focus" data-session="${esc(t.session.sessionId)}" data-args="${enc({ sessionId: t.session.sessionId })}" title="打开处理该任务的会话">${esc(t.session.isCurrent ? `本会话 · ${t.session.title}` : t.session.title)}</button></div>` : ''}
+          </article>`;
+        };
+        const renderTasks = () => {
+          const all = visibleTasks();
+          const shown = all.slice(0, ui.taskLimit);
+          const n = (b) => view.tasks.filter((t) => b === 'all' || t.bucket === b).length;
+          const pills = [['all', '全部'], ['active', '进行中'], ['attention', '需处理'], ['done', '已回复']];
+          return `<div class="search">${icon('search')}<input id="task-q" placeholder="搜内容、人、群或会话" value="${esc(ui.taskFilter.q)}" /></div>
+            <div class="pills">${pills.map(([k, t]) => `<button class="pill ${ui.taskFilter.bucket === k ? 'on' : ''}" data-act="taskBucket" data-bucket="${k}">${t}<span class="n">${n(k)}</span></button>`).join('')}</div>
+            ${shown.length ? shown.map(taskCard).join('') : `<div class="card empty"><b>${view.tasks.length ? '没有符合条件的任务' : '还没有任务'}</b>${view.tasks.length ? '' : '企微里有人派活后会显示在这里。'}</div>`}
+            ${all.length > shown.length ? `<button class="btn block" data-act="moreTasks">再显示 ${Math.min(TASK_PAGE, all.length - shown.length)} 条（共 ${all.length}）</button>` : ''}`;
+        };
+
+        const personControls = (p, allowMode) => {
+          const uid = p.label.id;
+          if (p.blocked) {
+            return `<span class="chip destructive">已拉黑</span>${btn('解除拉黑', 'setListed', { list: 'block', userid: uid, on: false }, 'sm')}`;
+          }
+          if (allowMode) {
+            const allowArgs = { list: 'allow', userid: uid, on: !p.allowed };
+            return `<span class="sub" style="flex:none">${p.allowed ? '已允许' : '未允许'}</span>
+              <button class="switch" role="switch" aria-checked="${p.allowed}" aria-label="允许 ${esc(p.label.name)} 派活" data-act="setListed" data-args="${enc(allowArgs)}" ${attrsOf(allowArgs)}></button>
+              ${btn('拉黑', 'setListed', { list: 'block', userid: uid, on: true }, 'sm ghost danger')}`;
+          }
+          return `<span class="sub" style="flex:none">可派活</span>${btn('拉黑', 'setListed', { list: 'block', userid: uid, on: true }, 'sm ghost danger')}`;
+        };
+        const renderSettings = () => {
+          const allow = view.access.mode === 'allowlist';
+          const can = view.people.filter((p) => p.canAssign).length;
+          const syncing = view.nameSync?.status === 'loading';
+          const mode = view.outbound?.mode || view.current?.reach?.mode || 'local-sessions';
+          const freshLock = view.policy?.preset === 'restrictive-v1' && allow && !view.people.some((p) => p.allowed);
+          return `${freshLock ? `<div class="card"><b>新安装默认不开放派活</b><div class="sub" style="margin:4px 0 8px">只有允许名单里的人能派活，现在名单是空的。已经在用的安装会保持原来的模式。点一次即可改回所有人都能派活。</div>${btn('改为所有人都能派活', 'setMode', { mode: 'blocklist' }, 'sm primary')}</div>` : ''}<div class="sec">谁能派活<span class="n">${can}/${view.people.length} 人可以</span></div>
+            <div class="card">
+              <div class="seg"><button class="${allow ? '' : 'on'}" data-act="setMode" data-mode="blocklist" data-args="${enc({ mode: 'blocklist' })}">所有人</button><button class="${allow ? 'on' : ''}" data-act="setMode" data-mode="allowlist" data-args="${enc({ mode: 'allowlist' })}">只有我允许的人</button></div>
+              <div class="sub" style="margin-top:6px">能派活的人可以让 Agent 在这台电脑上改代码、跑命令。拉黑在两种模式下都优先。</div>
+            </div>
+            <div class="list">${view.people.map((p) => `<div class="item"><div class="row" style="flex-wrap:wrap">${avatar('single', p.label.name, true)}<div class="grow row">${nameHtml(p.label, `person:${p.label.id}`)}</div>${personControls(p, allow)}</div></div>`).join('') || '<div class="empty">还没有人给机器人发过消息</div>'}
+              <div class="item row"><span class="sub grow">${view.names.updatedAt ? `名字 ${when(view.names.updatedAt)}同步` : '名字尚未同步'}。只在群里说过话的人可能取不到名字，可以手动备注。</span>
+                <button class="btn sm" data-act="refreshNames" ${syncing ? 'disabled' : ''}>${syncing ? '同步中' : '同步名字'}</button></div>
+            </div>
+            <section id="outbound-section">
+              <div class="sec">主动外发范围</div>
+              <div>${OUTBOUND.map(([k, t, d]) => `<button class="radio ${k === mode ? 'on' : ''}" data-act="setOutboundMode" data-mode="${k}" data-args="${enc({ mode: k })}"><span class="ring"></span><span><b>${t}</b><span class="d">${d}</span></span></button>`).join('')}</div>
+              <div class="sub" style="margin:8px 2px">只管 Enso 主动外发消息，不改变来信路由或网页授权，每次外发仍需你明确要求。</div>
+            </section>`;
+        };
+        const renderBoard = () => {
+          const board = view.board || { items: [], shares: [], misses: [], counts: {} };
+          const tunnel = board.tunnel || {};
+          const check = board.lastCheck;
+          const modes = [['auto', '自动'], ['named', '命名隧道'], ['quick', '临时隧道'], ['tailscale', 'Tailscale'], ['off', '关闭']];
+          const groups = board.groups || [];
+          // 记住的群不在了（没有需求、被清掉）就当作“全部”。
+          const group = groups.some((g) => g.chatKey === board.layout?.group) ? board.layout.group : '';
+          const inGroup = (entry) => !group || entry.chatKey === group;
+          const misses = (board.misses || []).filter(inGroup).sort((a, b) => String(a.chatTitle || '').localeCompare(String(b.chatTitle || ''), 'zh-Hans-CN'));
+          const items = (board.items || []).filter(inGroup);
+          const total = groups.reduce((sum, g) => sum + g.count, 0);
+          const hinted = (board.gates || []).filter((g) => g.health && (!group || g.chatKey === group));
+          const gateRows = (group ? (board.gates || []).filter((g) => g.chatKey === group) : (board.gates || []).filter((g) => groups.some((x) => x.chatKey === g.chatKey))).slice(0, 6);
+          const groupPill = (key, text, count, tip) => `<button class="pill ${group === key ? 'on' : ''}" data-act="setBoardGroup" data-args="${enc({ group: key })}" title="${esc(tip)}">${esc(text)}<span class="n">${esc(count)}</span></button>`;
+          const groupBar = groups.length > 1
+            ? `<div class="pills" style="margin-top:8px">${groupPill('', '全部', total, '所有群')}${groups.map((g) => groupPill(g.chatKey, g.title, `${g.count}${g.pending ? ` · ${g.pending}审` : ''}${g.misses ? `+${g.misses}` : ''}`, g.misses ? `${g.chatKey}（${g.misses} 条可能还没登记）` : g.chatKey)).join('')}</div>`
+            : '';
+          const chatChip = (entry) => (!group && groups.length > 1 ? `<span class="chip" title="${esc(entry.chatKey)}">${esc(entry.chatTitle || '')}</span> ` : '');
+          const linkRow = (label, url) => url ? `<div class="item"><div class="row"><div class="grow"><div class="name">${esc(label)}</div><div class="sub ell" title="${esc(url)}">${esc(url)}</div></div>${btn('复制', 'copyText', { text: url }, 'sm')}${btn('打开', 'openBoard', { url }, 'sm ghost')}</div></div>` : '';
+          return `<section class="card"><div class="eyebrow">需求看板</div><div class="sub">待审核 ${board.counts?.review || 0} · 待决定 ${board.counts?.decision || 0} · 待做 ${board.counts?.todo || 0} · 进行中 ${board.counts?.doing || 0}。不会把这些数字发到企微群。</div>
+              ${gateRows.map((g) => `<div class="sub" style="margin-top:6px" title="${esc(g.chatKey)}">${group ? '' : `${esc(g.title)} · `}审核门槛：${g.on ? '开' : '关'}${g.on ? ` · 审核人 ${esc(g.effective.map((p) => p.name).join('、'))}` : ''}${g.pending ? ` · ${g.pending} 条待审核` : ''}</div>`).join('')}${gateRows.length ? '<div class="sub">审核人在管理页里设置。</div>' : ''}
+              ${hinted.length ? `<div class="card" style="margin-top:8px;border-color:var(--warning)"><b>会话可能没有看板工具</b>${hinted.map((g) => `<div class="sub" title="${esc(g.chatKey)}">${esc(g.title)}：${esc(g.health.text)}</div>`).join('')}</div>` : ''}
+              <div class="sub" style="margin-top:6px">公网：${esc(tunnel.kind || 'off')}${tunnel.reason ? ` · ${esc(tunnel.reason)}` : ''}</div>
+              ${check ? `<div class="sub">自检：本机${check.listening ? '在听' : '没听'}，隧道${check.tunnelUp ? '有地址' : '没有地址'}，公网${check.publicReachable ? '能打开' : '还打不开'}</div>` : ''}
+              <div class="row" style="margin-top:8px;flex-wrap:wrap">${btn('自检', 'selfCheck', {}, 'sm primary')}</div>
+              ${groupBar}
+            </section>
+            <div class="sec">怎么暴露到公网</div>
+            <div>${modes.map(([k, t]) => `<button class="radio ${((board.tunnelMode || tunnel.mode || 'auto') === k) ? 'on' : ''}" data-act="setTunnelMode" data-mode="${k}" data-args="${enc({ mode: k })}"><span class="ring"></span><span><b>${t}</b></span></button>`).join('')}</div>
+            <div class="list" style="margin-top:8px">${linkRow('所有者管理', board.localUrl)}${linkRow('当前公网地址', board.publicUrl) || '<div class="empty">还没有公网地址。自动模式会先找命名隧道或 Tailscale，再退到临时隧道。</div>'}</div>
+            <div class="sec">可能还没登记</div>
+            ${misses.length ? `<div class="row" style="margin-bottom:6px"><span class="sub grow">${misses.length} 条请求没在看板上。补登记会按审核门槛处理。</span>${btn(`补登记 ${misses.length} 条`, 'importMisses', { chatKey: group }, 'sm primary')}</div><div class="list">${misses.slice(0, 12).map((m) => `<div class="item"><div class="name clamp2">${esc(m.text)}</div><div class="sub ell" title="${esc(`${m.chatKey || ''} · 任务 ${m.taskId || ''}`)}">${group ? '' : `${esc(m.chatTitle || '')} · `}${esc(m.requesterName || '')}</div></div>`).join('')}</div>` : '<div class="card empty"><b>最近的企微请求都能在看板上找到</b>每天会再对一次，只显示在这里和管理页。</div>'}
+            <div class="sec">分享链接</div>
+            <div class="list">${(board.shares || []).filter((s) => !s.revoked).map((s) => `<div class="item"><div class="row"><div class="grow"><div class="name ell">${esc(s.name)}</div><div class="sub ell" title="${esc((s.projects || []).join(' '))}">${s.role === 'decide' ? '可拍板' : '只读'}${s.onlyMine ? ` · 只看 ${esc(s.requesterName || '指定的人')}` : ''} · ${esc((s.projectNames || []).map((p) => p.title).join('、') || '不限群')}</div></div>${s.url ? btn('复制', 'copyText', { text: s.url }, 'sm') : ''}${btn('收回', 'revokeShare', { id: s.id }, 'sm ghost danger')}</div></div>`).join('') || '<div class="empty">还没有分享。在管理页创建，每个人一条链接，可以单独收回。</div>'}</div>
+            <div class="sec">条目</div>
+            ${items.slice(0, 30).map((item) => `<article class="card"><div class="row"><span class="status s-${item.replyOutstanding || item.status === 'pending_review' ? 'attention' : 'active'}">${esc(item.statusLabel)}</span><b class="ell grow">${item.no ? `#${item.no} ` : ''}${esc(item.title)}</b></div><div class="sub">${chatChip(item)}${esc(item.deliveryLabel || '')}${item.waitingOn ? ` · 待 ${esc(item.waitingOn)}` : ''}${item.decision ? ` · ${esc(item.decision)}` : ''}</div></article>`).join('') || `<div class="card empty"><b>${group ? '这个群里还没有需求' : '看板上还没有需求'}</b>企微里确认要做的事，和会话里新提出的事，都会由助手登记到这里。</div>`}`;
+        };
+
+        const accept = (next) => {
+          if (!next?.conn) return;
+          const prevSid = view?.current?.sessionId || null;
+          const nextSid = next.current?.sessionId || null;
+          const prevBot = view?.conn?.botId || '';
+          const nextBot = next.conn?.botId || '';
+          if ((prevSid && nextSid && prevSid !== nextSid) || (prevBot && nextBot && prevBot !== nextBot)) {
+            disarm();
+            ui.picker = { open: false, q: '' };
+            ui.docDrafts.clear();
+          }
+          view = next;
+          if (!ui.editing) render();
+        };
+        function render() {
+          if (!view) return;
+          const active = document.activeElement;
+          const focusId = active?.id || '';
+          const docChat = active?.dataset?.docLinks || '';
+          const caret = typeof active?.selectionStart === 'number' ? active.selectionStart : null;
+          renderTop();
+          $('view').innerHTML = { here: renderHere, chats: renderChats, tasks: renderTasks, settings: renderSettings, board: renderBoard }[ui.tab]();
+          const edit = document.querySelector('input.edit');
+          if (edit) {
+            edit.focus();
+            return;
+          }
+          const target = (focusId && $(focusId)) || (docChat && docTextarea(docChat));
+          if (target) {
+            target.focus();
+            if (caret !== null) target.setSelectionRange?.(caret, caret);
+          }
+        }
+
+        const LOCAL = {
+          tab: (el) => { ui.tab = el.dataset.tab; disarm(); scrollTop(); },
+          picker: () => { ui.picker = { open: !ui.picker.open, q: '' }; disarm(); },
+          expand: (el) => { const k = el.dataset.key; ui.expanded.has(k) ? ui.expanded.delete(k) : ui.expanded.add(k); },
+          chatScope: (el) => { ui.chatFilter.scope = el.dataset.scope; },
+          taskBucket: (el) => { ui.taskFilter.bucket = el.dataset.bucket; ui.taskLimit = TASK_PAGE; },
+          moreTasks: () => { ui.taskLimit += TASK_PAGE; },
+          startRename: (el) => { disarm(); ui.editing = { id: el.dataset.id, scope: el.dataset.scope, draft: el.dataset.remark || '' }; },
+          cancelRename: () => { ui.editing = null; },
+        };
+        const saveRename = (id, name) => {
+          ui.editing = null;
+          void run('rename', { id, name: String(name ?? '').trim() });
+        };
+        document.addEventListener('click', (e) => {
+          const el = e.target.closest('[data-act]');
+          if (!el) return;
+          const act = el.dataset.act;
+          if (LOCAL[act]) {
+            LOCAL[act](el);
+            return render();
+          }
+          if (act === 'saveRename') return saveRename(el.dataset.id, document.querySelector('input.edit')?.value ?? ui.editing?.draft ?? '');
+          if (act === 'grantDocs') {
+            const chatKey = el.dataset.chat;
+            const ch = chatOf(chatKey);
+            const d = ui.docDrafts.get(chatKey) || {};
+            const scope = d.scope ?? (ch?.settings?.docs?.scope === 'listed' ? 'listed' : 'all');
+            const links = scope === 'all' ? '' : docTextarea(chatKey)?.value ?? (d.links ?? '');
+            ui.docDrafts.delete(chatKey);
+            return void run('grantDocs', { chatKey, links, scope });
+          }
+          const parsed = JSON.parse(el.dataset.args || '{}');
+          if (act === 'revokeDocs' && ui.confirm === keyOf(act, parsed)) ui.docDrafts.delete(parsed.chatKey);
+          void run(act, parsed);
+        });
+        document.addEventListener('change', (e) => {
+          if (e.target.matches('select[data-doc-scope]')) {
+            const chatKey = e.target.dataset.chat;
+            const prev = ui.docDrafts.get(chatKey) || {};
+            ui.docDrafts.set(chatKey, { ...prev, scope: e.target.value });
+            render();
+          }
+        });
+        document.addEventListener('input', (e) => {
+          const id = e.target.id;
+          if (id === 'picker-q') ui.picker.q = e.target.value;
+          else if (id === 'chat-q') ui.chatFilter.q = e.target.value;
+          else if (id === 'task-q') ui.taskFilter.q = e.target.value;
+          else if (e.target.matches('textarea[data-doc-links]')) {
+            const k = e.target.dataset.docLinks;
+            ui.docDrafts.set(k, { ...(ui.docDrafts.get(k) || {}), links: e.target.value });
+            return;
+          } else if (e.target.matches('input.edit') && ui.editing) {
+            ui.editing.draft = e.target.value;
+            return;
+          } else return;
+          render();
+        });
+        document.addEventListener('keydown', (e) => {
+          const input = e.target.closest?.('input.edit');
+          if (!input) return;
+          if (e.key === 'Enter') { e.preventDefault(); saveRename(input.dataset.id, input.value); }
+          if (e.key === 'Escape') { e.preventDefault(); ui.editing = null; render(); }
+        });
+
+        const busy = () => Boolean(ui.editing || ui.confirm || /^(SELECT|TEXTAREA|INPUT)$/.test(document.activeElement?.tagName || ''));
+
+        if (typeof enso?.on === 'function') {
+          let syncingCurrent = false;
+          const syncSnapshot = () => {
+            if (syncingCurrent || document.visibilityState === 'hidden' || busy()) return;
+            syncingCurrent = true;
+            enso.call('snapshot')
+              .then((fresh) => { if (!ui.editing) accept(fresh); })
+              .catch(() => {})
+              .finally(() => { syncingCurrent = false; });
+          };
+          enso.on('state', (data) => {
+            if (!data?.conn) return;
+            const outbound = data.outbound?.scope == null && view?.outbound?.mode === data.outbound?.mode ? view.outbound : data.outbound;
+            const current = data.current ?? (view?.current ? { ...view.current, reach: outbound?.scope ? outbound : view.current.reach } : null);
+            const curSid = current?.sessionId || null;
+            const chats = !data.current && curSid && Array.isArray(data.chats)
+              ? data.chats.map((ch) => {
+                  const prev = view?.chats?.find((p) => p.chatKey === ch.chatKey);
+                  const isCurrent = Boolean(ch.route && ch.route.sessionId === curSid);
+                  return {
+                    ...ch,
+                    route: ch.route ? { ...ch.route, isCurrent } : null,
+                    members: (ch.members || []).map((m) => ({
+                      ...m,
+                      override: m.override ? { ...m.override, isCurrent: m.override.sessionId === curSid } : null,
+                    })),
+                    settings: isCurrent ? (ch.settings ?? prev?.settings ?? null) : null,
+                  };
+                })
+              : data.chats;
+            const merged = { ...data, chats, current, outbound };
+            if (ui.editing) {
+              view = merged;
+              return;
+            }
+            accept(merged);
+            if (!data.current) syncSnapshot();
+          });
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState !== 'hidden') syncSnapshot();
+          });
+        } else {
+          let inFlight = false;
+          const poll = async () => {
+            if (inFlight || document.visibilityState === 'hidden' || busy()) return;
+            inFlight = true;
+            try {
+              accept(await enso.call('snapshot'));
+            } catch {
+            } finally {
+              inFlight = false;
+            }
+          };
+          setInterval(poll, POLL_MS);
+          document.addEventListener('visibilitychange', () => void poll());
+        }
+
+        enso.call('snapshot').then(accept).catch((e) => toast(e?.message || String(e), { bad: true }));
+      })();
+    </script>
+  </body>
+</html>
